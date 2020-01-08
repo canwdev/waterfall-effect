@@ -1,5 +1,5 @@
 {
-  "name": "randomImage",
+  "name": "random-image-viewer",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
