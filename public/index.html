@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>图片瀑布流效果</title>
+  <link rel="stylesheet" href="index.css">
+  <script src="./lib/vue.js"></script>
+  <script src="./lib/vue-lazyload.js"></script>
+  <script src="./lib/axios.js"></script>
+
+</head>
+
+<body>
+  <div id="root">
+
+    <div class="waterfall">
+      <div class="waterfall-col" v-for="(i, index) in imgIdList.length" :key="i" ref="waterfallCol">
+        <div v-for="(col, colIndex) in imgIdList[index]" :key="colIndex" class="waterfall-item">
+          <img v-lazy="'/img?id='+col">
+          {{col || '???'}}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- <button @click="loadRandomImageIds()">LoadMore</button> -->
+    <!-- <button @click="getMinCol()">getMinCol</button> -->
+    <div class="loading" v-show="loading">Loading...</div>
+
+
+  </div>
+
+
+  <script>
+    Vue.use(VueLazyload, {
+      preLoad: 4,
+      error: 'img/error.jpg',
+      loading: 'img/loading.gif',
+      attempt: 1
+    })
+    var vm = new Vue({
+      el: '#root',
+      data() {
+        return {
+          colNum: 3,
+          imgIdList: [],
+          loading: true
+        }
+      },
+      created() {
+        for (var i = 0; i < this.colNum; ++i) this.imgIdList.push([]);
+
+        this.loadRandomImageIds()
+      },
+      mounted() {
+        window.addEventListener('scroll', this.handleScroll)
+      },
+      methods: {
+        // 获得二维数组中第二维高度最小的索引
+        getMinColKey() {
+          const object = {}
+
+          this.imgIdList.forEach((item, index) => {
+            console.log(this.$refs.waterfallCol[index])
+            object[index] = this.$refs.waterfallCol[index].clientHeight // item.length
+          })
+
+          var minKey = Object.keys(object).reduce(function (r, a, i) {
+            return !i || +object[a] < +object[r] ? a : r;
+          })
+
+          console.log(object, minKey)
+
+          return minKey
+        },
+        loadRandomImageIds() {
+          this.loading = true
+          axios.get('/img_id_list', {
+            count: 10
+          }).then(res => {
+            let list = res.data
+
+            // 按特定规则将图片推入数组
+            let colIndex = this.getMinColKey()
+            for (let i = 0; i < list.length; i++) {
+              const item = list[i]
+
+              if (colIndex >= this.colNum) {
+                colIndex = 0
+              }
+
+              this.imgIdList[colIndex].push(item)
+              ++colIndex
+            }
+
+          }).finally(() => {
+            this.loading = false
+          })
+        },
+        handleScroll() {
+          if (!this.loading) {
+            // 滚动到底部自动加载
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+              this.loadRandomImageIds()
+            }
+          }
+
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
